@@ -8,30 +8,30 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/KatsuyaAkasaka/pit/pkg/components/snippet"
+	"github.com/KatsuyaAkasaka/pit/pkg/components/replace"
 	"github.com/spf13/cobra"
 )
 
-func (o *options) toSnippetPkgVars(subCommand string) *snippet.Variable {
-	return &snippet.Variable{
+func (o *options) toReplacePkgVars(subCommand string, input string) *replace.Variable {
+	return &replace.Variable{
 		Subcommand: subCommand,
-		Option: snippet.Options{
-			Language: o.language,
+		Option: replace.Options{
+			InputText: input,
 		},
 	}
 }
 
 // sniCmd represents the sni command
-func getSnippetCmd(cs *cmdSetting) *cobra.Command {
+func getReplaceCmd(cs *cmdSetting) *cobra.Command {
 	opt := &options{}
 
-	var snippetCmd = &cobra.Command{
-		Use:   "sni",
-		Short: "my snippets",
+	var replaceCmd = &cobra.Command{
+		Use:   "rep",
+		Short: "my replacement",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 1 {
-				fmt.Println("please specify subcommand")
+				fmt.Println("please specify subcommand -h")
 				os.Exit(1)
 			}
 
@@ -42,7 +42,7 @@ func getSnippetCmd(cs *cmdSetting) *cobra.Command {
 			}
 
 			subCommand := args[0]
-			err, res := snippet.Exec(opt.toSnippetPkgVars(subCommand))
+			res, err := replace.Exec(opt.toReplacePkgVars(subCommand, outputSetting.inputText))
 			if err != nil {
 				fmt.Println("error occured", err)
 				os.Exit(1)
@@ -51,6 +51,6 @@ func getSnippetCmd(cs *cmdSetting) *cobra.Command {
 			outputSetting.exec(toResult(res))
 		},
 	}
-	snippetCmd.Flags().StringVarP(&opt.language, "language", "l", "", "snippet language")
-	return snippetCmd
+	replaceCmd.Flags().StringVarP(&opt.inputText, "input", "i", "", "input text")
+	return replaceCmd
 }

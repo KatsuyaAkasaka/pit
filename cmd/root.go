@@ -28,6 +28,11 @@ to quickly create a Cobra application.`,
 	// Run: func(cmd *cobra.Command, args []string) { },
 }
 
+type options struct {
+	language  string
+	inputText string
+}
+
 type result struct {
 	content string
 }
@@ -38,20 +43,26 @@ func toResult(content string) *result {
 	}
 }
 
-type inputSetting struct {
-	isCopyToClipboard bool
+type cmdSetting struct {
+	isCopyToClipboard   bool
+	isOutputStdout      bool
+	useClipboardToInput bool
 }
-type inputSettingResult struct {
+type outputSetting struct {
 	isCopyToClipboard bool
+	isOutputStdout    bool
+	inputText         string
 }
 
-func (i *inputSetting) Exec() *inputSettingResult {
-	res := &inputSettingResult{
+func (c *cmdSetting) buildOutputSetting(args []string, opt *options) (*outputSetting, error) {
+	res := &outputSetting{
 		isCopyToClipboard: true,
+		inputText:         "",
+		isOutputStdout:    c.isOutputStdout,
 	}
 	scanner := bufio.NewScanner(os.Stdin)
 
-	if i.isCopyToClipboard {
+	if c.isCopyToClipboard {
 		fmt.Printf("Copy snippet to clipboard? (Y/n) (default: Y) > ")
 		scanner.Scan()
 		in := scanner.Text()
@@ -59,19 +70,40 @@ func (i *inputSetting) Exec() *inputSettingResult {
 			res.isCopyToClipboard = false
 		}
 	}
-	return res
+	if opt.inputText != "" {
+		res.inputText = opt.inputText
+	} else if c.useClipboardToInput && opt.inputText == "" {
+		input, err := clipboard.ReadAll()
+		if err != nil {
+			os.Exit(1)
+		}
+		res.inputText = input
+	}
+	return res, nil
 }
 
-func (r *inputSettingResult) Exec(res *result) {
-	if r.isCopyToClipboard {
+func (o *outputSetting) exec(res *result) {
+	if o.isCopyToClipboard {
 		clipboard.WriteAll(res.content)
+	}
+	if o.isOutputStdout {
+		fmt.Println("```")
+		fmt.Printf(res.content)
+		fmt.Println("```")
 	}
 }
 
 func Cmd() *cobra.Command {
 	rootCmd.AddCommand(
-		getSnippetCmd(&inputSetting{
-			isCopyToClipboard: true,
+		getSnippetCmd(&cmdSetting{
+			isCopyToClipboard:   true,
+			isOutputStdout:      true,
+			useClipboardToInput: false,
+		}),
+		getReplaceCmd(&cmdSetting{
+			isCopyToClipboard:   true,
+			isOutputStdout:      true,
+			useClipboardToInput: true,
 		}),
 	)
 	return rootCmd
