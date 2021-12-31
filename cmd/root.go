@@ -88,7 +88,7 @@ func (o *outputSetting) exec(res *result) {
 	}
 	if o.isOutputStdout {
 		fmt.Println("```")
-		fmt.Printf(res.content)
+		fmt.Println(res.content)
 		fmt.Println("```")
 	}
 }
